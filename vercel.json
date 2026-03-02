@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://REPLACE-WITH-RAILWAY-URL/api/:path*"
+      "destination": "https://heic-to-jpg-converter-production.up.railway.app/api/:path*"
     },
     {
       "source": "/(.*)",
