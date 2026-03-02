@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://YOUR-DOMAIN.com/sitemap.xml
+Sitemap: https://heic-to-jpg-converter-production.up.railway.app/sitemap.xml
