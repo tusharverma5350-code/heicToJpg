@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef, startTransition } from 'react'
+import { useState, useCallback, useRef, useEffect, startTransition } from 'react'
 import UploadZone   from './components/UploadZone'
 import ProgressBar  from './components/ProgressBar'
 import Gallery      from './components/Gallery'
-import { convertFile, base64ToBlob } from './api/convert'
+import { convertBatch, convertFile, base64ToBlob, warmUp } from './api/convert'
 
 export default function App() {
   // 'upload' | 'converting' | 'done'
@@ -11,6 +11,10 @@ export default function App() {
   const [images,   setImages]   = useState([])   // { id, name, url }  — no blob in state
   const blobsRef = useRef(new Map())             // id → Blob, kept outside React state
   const [errorMsg, setErrorMsg] = useState('')
+
+  // Ping the backend the moment the page loads so Railway wakes up
+  // before the user selects files — eliminates cold-start delay.
+  useEffect(() => { warmUp() }, [])
 
   const handleFiles = useCallback(async (files) => {
     const heicFiles = Array.from(files).filter(f =>
@@ -28,29 +32,46 @@ export default function App() {
     setErrorMsg('')
     setProgress({ done: 0, total: heicFiles.length, failed: 0 })
 
-    // Fire all conversions simultaneously — Java thread pool handles parallelism
-    await Promise.all(
-      heicFiles.map(async (file) => {
-        try {
-          const result = await convertFile(file)
-          const blob   = base64ToBlob(result.data)
-          const url    = URL.createObjectURL(blob)
-          const id     = `${file.name}-${Date.now()}-${Math.random()}`
-          blobsRef.current.set(id, blob)          // store blob outside React state
-          const image  = { id, name: result.name, url }  // only lightweight data in state
+    try {
+      // Send all files in ONE request — avoids N round trips to Railway
+      const results = await convertBatch(heicFiles)
 
-          // startTransition: marks gallery updates as non-urgent so UI stays responsive
-          startTransition(() => {
-            setImages(prev => [...prev, image])
-          })
-          setProgress(p => ({ ...p, done: p.done + 1 }))
-
-        } catch (err) {
-          console.error('[convert] Failed:', file.name, err)
+      results.forEach((result, i) => {
+        if (!result.success) {
           setProgress(p => ({ ...p, done: p.done + 1, failed: p.failed + 1 }))
+          return
         }
+        const blob  = base64ToBlob(result.data)
+        const url   = URL.createObjectURL(blob)
+        const id    = `${heicFiles[i].name}-${Date.now()}-${Math.random()}`
+        blobsRef.current.set(id, blob)
+        startTransition(() => {
+          setImages(prev => [...prev, { id, name: result.name, url }])
+        })
+        setProgress(p => ({ ...p, done: p.done + 1 }))
       })
-    )
+    } catch (err) {
+      console.error('[convert] Batch failed, falling back to single:', err)
+      // Fallback: individual requests if batch endpoint fails
+      await Promise.all(
+        heicFiles.map(async (file) => {
+          try {
+            const result = await convertFile(file)
+            const blob   = base64ToBlob(result.data)
+            const url    = URL.createObjectURL(blob)
+            const id     = `${file.name}-${Date.now()}-${Math.random()}`
+            blobsRef.current.set(id, blob)
+            startTransition(() => {
+              setImages(prev => [...prev, { id, name: result.name, url }])
+            })
+            setProgress(p => ({ ...p, done: p.done + 1 }))
+          } catch (e) {
+            console.error('[convert] Failed:', file.name, e)
+            setProgress(p => ({ ...p, done: p.done + 1, failed: p.failed + 1 }))
+          }
+        })
+      )
+    }
 
     setView('done')
   }, [])

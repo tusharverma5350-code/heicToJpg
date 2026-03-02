@@ -19,7 +19,7 @@ const GalleryItem = memo(function GalleryItem({ img, selected, onToggle, onDownl
     >
       {/* loading="lazy"  — defers network fetch for off-screen images        */}
       {/* decoding="async" — image decode runs off the main thread            */}
-      <img src={img.url} alt={img.name} loading="lazy" decoding="async" />
+      <img src={img.url} alt={img.name} decoding="async" />
 
       {selected && (
         <span className="check">
