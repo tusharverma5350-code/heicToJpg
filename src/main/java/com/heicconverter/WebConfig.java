@@ -16,12 +16,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                // allowedOriginPatterns supports wildcards; covers localhost AND 127.0.0.1
-                // on any dev port without having to list them individually.
-                .allowedOriginPatterns(
-                        "http://localhost:*",
-                        "http://127.0.0.1:*"
-                )
+                // Public API — no auth/cookies, so wildcard origin is safe.
+                // Covers Vercel preview URLs, custom domains, and local dev.
+                .allowedOriginPatterns("*")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(false)
