@@ -1,0 +1,27 @@
+# Node.js dependencies
+node_modules/
+frontend/node_modules/
+
+# Claude Code
+.claude/
+
+# Build outputs
+target/
+frontend/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Environment
+.env
+.env.local

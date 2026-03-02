@@ -1,0 +1,8 @@
+{
+  "name": "heic-to-jpg-converter",
+  "version": "1.0.0",
+  "description": "Node.js helper called as a subprocess by Spring Boot for HEIC conversion",
+  "dependencies": {
+    "heic-convert": "^2.1.0"
+  }
+}
